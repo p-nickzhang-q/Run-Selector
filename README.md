@@ -28,11 +28,8 @@ brew install fzf
 ## 安装
 
 ```bash
-# 下载脚本
-curl -o ~/run-selector.sh https://your-url/run-selector.sh
-
-# 或直接创建文件后添加执行权限
-chmod +x ~/run-selector.sh
+# 克隆或下载到 ~/run-selector 目录
+chmod +x ~/run-selector/run-selector.sh
 ```
 
 ## 使用方法
@@ -129,9 +126,9 @@ rm -rf ~/.cache/run-selector/
 在 `~/.bashrc` 中添加：
 
 ```bash
-alias rs='~/run-selector.sh'
-alias rsg='~/run-selector.sh -g'
-alias rsc='~/run-selector.sh -c'
+alias rs='~/run-selector/run-selector.sh'
+alias rsg='~/run-selector/run-selector.sh -g'
+alias rsc='~/run-selector/run-selector.sh -c'
 ```
 
 然后执行：
@@ -147,7 +144,7 @@ source ~/.bashrc
 在桌面环境的键盘设置中添加自定义快捷键：
 
 ```
-命令: /home/你的用户名/run-selector.sh -g
+命令: ~/run-selector/run-selector.sh -g
 快捷键: Super + R (或其他组合键)
 ```
 
