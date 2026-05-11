@@ -4,6 +4,7 @@
 # 配置
 CACHE_DIR="$HOME/.cache/run-selector"
 CACHE_FILE="$CACHE_DIR/apps.cache"
+CONFIG_FILE="$HOME/.config/run-selector/config.conf"
 CACHE_EXPIRE_SECONDS=$((24 * 60 * 60))
 
 # 颜色
@@ -29,6 +30,10 @@ show_help() {
     echo "  -h, --help     显示此帮助信息"
     echo ""
     echo "操作: ${GREEN}↑/↓${NC} 选择  ${GREEN}Enter${NC} 执行  ${GREEN}q${NC} 退出"
+    echo ""
+    echo "配置文件: ~/.config/run-selector/config.conf"
+    echo "  格式: 程序名=额外参数"
+    echo "  示例: godot=--editor --display-driver wayland"
     echo ""
 }
 
@@ -85,6 +90,24 @@ collect_apps() {
     esac
 }
 
+# 获取程序额外参数
+get_extra_args() {
+    local name="$1"
+    local cmd_basename=$(basename "$cmd" 2>/dev/null | cut -d' ' -f1)
+
+    # 检查配置文件是否存在
+    if [[ -f "$CONFIG_FILE" ]]; then
+        while IFS='=' read -r prog args; do
+            [[ -z "$prog" || "$prog" =~ ^# ]] && continue
+            # 匹配程序名或命令名
+            if [[ "${name,,}" == "${prog,,}" ]] || [[ "${cmd_basename,,}" == "${prog,,}" ]]; then
+                echo "$args"
+                return
+            fi
+        done < "$CONFIG_FILE"
+    fi
+}
+
 # 交互式菜单 - 使用 fzf
 interactive_menu() {
     local apps=("$@")
@@ -115,17 +138,24 @@ interactive_menu() {
     local name="${rest%%|*}"
     local cmd="${rest#*|}"
 
+    # 获取额外参数
+    local extra_args=$(get_extra_args "$name" "$cmd")
+
     echo ""
     echo -e "${GREEN}正在启动: ${name}${NC}"
-    echo -e "${BLUE}命令: ${cmd}${NC}"
+    if [[ -n "$extra_args" ]]; then
+        echo -e "${BLUE}命令: ${cmd} ${extra_args}${NC}"
+    else
+        echo -e "${BLUE}命令: ${cmd}${NC}"
+    fi
     echo ""
 
     if [[ "$type" == "CLI" ]]; then
         # CLI 程序在前台执行
-        exec $cmd
+        exec $cmd $extra_args
     else
         # GUI 程序后台启动
-        nohup $cmd &>/dev/null &
+        nohup $cmd $extra_args &>/dev/null &
         disown 2>/dev/null
         echo -e "${GREEN}程序已启动！${NC}"
     fi

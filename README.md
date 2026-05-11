@@ -9,6 +9,7 @@
 - **程序分类** - 自动识别 GUI 和 CLI 程序
 - **智能缓存** - 程序列表缓存 24 小时，启动更快
 - **搜索过滤** - 支持命令行关键词预过滤
+- **自定义参数** - 支持为程序配置默认启动参数
 
 ## 依赖
 
@@ -117,6 +118,46 @@ $ ./run-selector.sh -g
 ```bash
 # 手动清除缓存
 rm -rf ~/.cache/run-selector/
+```
+
+## 自定义参数配置
+
+可以为特定程序配置默认启动参数，避免每次手动输入。
+
+### 配置文件位置
+
+```
+~/.config/run-selector/config.conf
+```
+
+### 配置格式
+
+```bash
+程序名=额外参数
+```
+
+程序名可以是显示名称或命令名（不区分大小写），以 `#` 开头的行为注释。
+
+### 配置示例
+
+```bash
+# Godot 使用 Wayland 显示驱动
+godot=--editor --display-driver wayland
+
+# Firefox 隐私模式
+firefox=--private-window
+
+# VS Code 新窗口
+code=--new-window
+```
+
+### 使用效果
+
+配置后，在 run-selector 中选择对应程序时会自动附加配置的参数：
+
+```
+正在启动: Godot
+命令: godot --editor --display-driver wayland
 ```
 
 ## 添加快捷方式（可选）
