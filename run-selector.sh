@@ -165,16 +165,44 @@ interactive_menu() {
         : > "$launch_log"
         nohup "$cmd" $extra_args >"$launch_log" 2>&1 &
         local pid=$!
-        disown 2>/dev/null
 
         # 给进程 1.5 秒确认它没立刻挂掉，避免静默失败
         sleep 1.5
         if kill -0 "$pid" 2>/dev/null; then
+            disown 2>/dev/null
             echo -e "${GREEN}程序已启动！${NC} (pid $pid)"
         else
-            echo -e "${RED}启动失败！${NC} 命令没有活下来。输出如下："
-            sed 's/^/    /' "$launch_log"
-            echo -e "${YELLOW}提示：如果是 Electron 应用且已有一份在运行，第二个实例会静默退出（正常现象）。${NC}"
+            # 已经退了，才能 wait 拿到退出码（用 disown 之后就不行了，所以放这里）
+            wait "$pid" 2>/dev/null
+            local rc=$?
+
+            # 是否已经有同路径的实例在跑（Electron / JetBrains 这类单实例程序会转交请求后自己退出）
+            local running=""
+            running=$(ps -eo pid=,args= 2>/dev/null | grep -F -- "$cmd" | grep -vF -- "grep" \
+                        | awk -v me="$pid" '$1 != me {print $1}' | head -5)
+            # 只保留还活着的，并排除自己/父 shell（它们的命令行可能刚好包含这个路径）
+            local alive=""
+            for p in $running; do
+                [[ "$p" == "$$" || "$p" == "$PPID" ]] && continue
+                kill -0 "$p" 2>/dev/null && alive+="$p "
+            done
+            running="${alive% }"
+
+            if [[ -n "$running" ]]; then
+                echo -e "${GREEN}已有实例在运行${NC}（pid ${running// /,}），本次启动只是把请求转交给它。"
+                echo -e "${YELLOW}窗口应该已经在任务栏/其他窗口下面，切过去看看；启动器自身立即退出是正常的。${NC}"
+            elif [[ $rc -eq 0 ]]; then
+                echo -e "${GREEN}启动器已正常退出${NC}（rc=0），工作应该交给了后台进程。"
+            else
+                echo -e "${RED}启动失败！${NC} 命令退出码 $rc。输出如下："
+                if [[ -s "$launch_log" ]]; then
+                    sed 's/^/    /' "$launch_log"
+                else
+                    echo -e "    ${YELLOW}(没有任何输出)${NC}"
+                fi
+                echo -e "${YELLOW}提示：试试直接在终端里跑试试，看真实报错：${NC}"
+                echo -e "    $cmd $extra_args"
+            fi
         fi
     fi
 }
