@@ -69,6 +69,7 @@ get_cli_apps() {
         "$HOME/go/bin"
         "$HOME/.cargo/bin"
         "$HOME/.npm-global/bin"
+        "$HOME/.opencode/bin"
     )
 
     for dir in "${user_dirs[@]}"; do
