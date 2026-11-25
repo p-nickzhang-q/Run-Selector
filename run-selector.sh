@@ -53,7 +53,8 @@ get_gui_apps() {
                 [[ -z "$desktop_file" ]] && continue
                 local name="" exec_cmd=""
                 name=$(grep -m1 '^Name=' "$desktop_file" 2>/dev/null | cut -d'=' -f2-)
-                exec_cmd=$(grep -m1 '^Exec=' "$desktop_file" 2>/dev/null | cut -d'=' -f2- | sed 's/%.//g' | sed 's/  */ /g' | sed 's/^"//;s/"$//' | sed 's/^"//;s/"[[:space:]]/ /;s/"$//')
+                exec_cmd=$(grep -m1 '^Exec=' "$desktop_file" 2>/dev/null | cut -d'=' -f2- | sed 's/%.//g' | sed 's/  */ /g' | sed 's/^"//;s/"$//' | sed 's/^"//;s/"[[:space:]]/ /;s/"$//' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+                name=$(printf '%s' "$name" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
                 [[ -z "$name" || -z "$exec_cmd" ]] && continue
                 echo "GUI|${name}|${exec_cmd}"
             done < <(find "$dir" -name "*.desktop" -type f 2>/dev/null)
@@ -138,6 +139,10 @@ interactive_menu() {
     local rest="${selection#*|}"
     local name="${rest%%|*}"
     local cmd="${rest#*|}"
+
+    # 再削一遍首尾空白：旧缓存里存的可能是去掉 %U 后残留尾部空格的命令
+    cmd=$(printf '%s' "$cmd" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+    name=$(printf '%s' "$name" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
 
     # 获取额外参数
     local extra_args=$(get_extra_args "$name" "$cmd")
