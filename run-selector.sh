@@ -151,13 +151,25 @@ interactive_menu() {
     echo ""
 
     if [[ "$type" == "CLI" ]]; then
-        # CLI 程序在前台执行
-        exec $cmd $extra_args
+        # CLI 程序在前台执行（$cmd 必须加引号：路径里常含空格）
+        exec "$cmd" $extra_args
     else
-        # GUI 程序后台启动
-        nohup $cmd $extra_args &>/dev/null &
+        # GUI 程序后台启动（$cmd 必须加引号，否则 "/opt/T3 Code (Beta)/t3code" 会被拆成三个参数）
+        local launch_log="${TMPDIR:-/tmp}/run-selector-launch.log"
+        : > "$launch_log"
+        nohup "$cmd" $extra_args >"$launch_log" 2>&1 &
+        local pid=$!
         disown 2>/dev/null
-        echo -e "${GREEN}程序已启动！${NC}"
+
+        # 给进程 1.5 秒确认它没立刻挂掉，避免静默失败
+        sleep 1.5
+        if kill -0 "$pid" 2>/dev/null; then
+            echo -e "${GREEN}程序已启动！${NC} (pid $pid)"
+        else
+            echo -e "${RED}启动失败！${NC} 命令没有活下来。输出如下："
+            sed 's/^/    /' "$launch_log"
+            echo -e "${YELLOW}提示：如果是 Electron 应用且已有一份在运行，第二个实例会静默退出（正常现象）。${NC}"
+        fi
     fi
 }
 
